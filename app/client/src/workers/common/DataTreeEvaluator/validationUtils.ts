@@ -6,7 +6,7 @@ import type {
   WidgetEntity,
   WidgetEntityConfig,
 } from "entities/DataTree/dataTreeFactory";
-import { get, isUndefined, set } from "lodash";
+import { get, isObject, isUndefined, set } from "lodash";
 import type { EvaluationError } from "utils/DynamicBindingUtils";
 import {
   getEvalValuePath,
@@ -24,6 +24,15 @@ import type { EvalProps } from ".";
 import type { ValidationResponse } from "constants/WidgetValidation";
 
 const LARGE_COLLECTION_SIZE = 100;
+
+const getIsLargeCollection = (val: any) => {
+  if (!Array.isArray(val)) return false;
+  const rowSize = !isObject(val[0]) ? 1 : Object.keys(val[0]).length;
+
+  const size = val.length * rowSize;
+
+  return size > LARGE_COLLECTION_SIZE;
+};
 export function setToEvalPathsIdenticalToState({
   evalPath,
   evalPathsIdenticalToState,
@@ -32,8 +41,7 @@ export function setToEvalPathsIdenticalToState({
   statePath,
   value,
 }: any) {
-  const isLargeCollection =
-    Array.isArray(value) && value.length > LARGE_COLLECTION_SIZE;
+  const isLargeCollection = getIsLargeCollection(value);
 
   if (isParsedValueTheSame && isLargeCollection) {
     evalPathsIdenticalToState[evalPath] = statePath;

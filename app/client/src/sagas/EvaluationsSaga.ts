@@ -189,7 +189,35 @@ export function* updateDataTreeHandler(
 
     return size > LARGE_COLLECTION_SIZE;
   };
-  const ignoreLargeKeys = identicalEvalPathsPatches;
+  const ignoreLargeKeys = Object.keys(identicalEvalPathsPatches).reduce(
+    (acc: any, evalPath: string) => {
+      //for object paths which have a "." in the object key like "a.['b.c']", we need to extract these
+      // paths and break them to appropriate patch paths
+      const regex = /(.+)\.\[\'(.*)\'\]/;
+
+      const matches = evalPath.match(regex);
+      if (!matches || !matches.length) {
+        //regular paths like "a.b.c"
+        acc[evalPath] = identicalEvalPathsPatches[evalPath];
+        return acc;
+      }
+
+      const [, firstSeg, nestedPathSeg] = matches;
+      // normalise non nested paths like "a.['b']"
+      if (!nestedPathSeg.includes(".")) {
+        //regular paths like "a.b.c"
+        const key = [firstSeg, nestedPathSeg].join(".");
+        acc[key] = identicalEvalPathsPatches[evalPath];
+        return acc;
+      }
+      // object paths which have a "." like "a.['b.c']"
+      //regular paths like "a.b.c"
+      const key = [firstSeg, `['${nestedPathSeg}']`].join(".");
+      acc[key] = identicalEvalPathsPatches[evalPath];
+      return acc;
+    },
+    {},
+  );
   const attachDirectly: any = [];
   const ignoreLargeKeysHasBeenAttached = new Set();
   const updates =
@@ -201,7 +229,7 @@ export function* updateDataTreeHandler(
       // if ignore path is present
       if (!!ignoreLargeKeys[setPath]) {
         const originalStateVal = get(oldDataTree, segmentedPath);
-        const correspondingStatePath = identicalEvalPathsPatches[setPath];
+        const correspondingStatePath = ignoreLargeKeys[setPath];
         const statePathValue = get(dataTree, correspondingStatePath);
         if (!equal(originalStateVal, statePathValue)) {
           attachDirectly.push({ path: segmentedPath, rhs: statePathValue });
@@ -229,10 +257,10 @@ export function* updateDataTreeHandler(
       return true;
     }) || [];
 
-  const missingSetPaths = Object.keys(identicalEvalPathsPatches)
+  const missingSetPaths = Object.keys(ignoreLargeKeys)
     .filter((evalPath) => !ignoreLargeKeysHasBeenAttached.has(evalPath))
     .map((evalPath) => {
-      const statePath = identicalEvalPathsPatches[evalPath];
+      const statePath = ignoreLargeKeys[evalPath];
       //for object paths which have a "." in the object key like "a.['b.c']", we need to extract these
       // paths and break them to appropriate patch paths
       const regex = /(.+)\.\[\'(.*)\'\]/;
@@ -246,7 +274,7 @@ export function* updateDataTreeHandler(
 
         return {
           kind: "N",
-          path: evalPath,
+          path: evalPath.split("."),
           rhs: val,
         };
       }
@@ -265,6 +293,7 @@ export function* updateDataTreeHandler(
     ...attachDirectly.map((val: any) => ({ kind: "N", ...val })),
     ...missingSetPaths,
   ];
+
   if (!isEmpty(staleMetaIds)) {
     yield put(resetWidgetsMetaState(staleMetaIds));
   }

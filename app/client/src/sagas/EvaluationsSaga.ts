@@ -60,7 +60,7 @@ import {
 import type { JSAction } from "entities/JSCollection";
 import { getAppMode } from "@appsmith/selectors/applicationSelectors";
 import { APP_MODE } from "entities/App";
-import { get, isEmpty, isNumber, isObject } from "lodash";
+import { get, isEmpty } from "lodash";
 import type { TriggerMeta } from "@appsmith/sagas/ActionExecution/ActionExecutionSagas";
 import { executeActionTriggers } from "@appsmith/sagas/ActionExecution/ActionExecutionSagas";
 import {
@@ -68,7 +68,6 @@ import {
   TriggerKind,
 } from "constants/AppsmithActionConstants/ActionConstants";
 import { validate } from "workers/Evaluation/validations";
-import { diff } from "deep-diff";
 import { REPLAY_DELAY } from "entities/Replay/replayUtils";
 import type { EvaluationVersion } from "@appsmith/api/ApplicationApi";
 
@@ -100,10 +99,9 @@ import { getAppsmithConfigs } from "@appsmith/configs";
 import { executeJSUpdates } from "actions/pluginActionActions";
 import { setEvaluatedActionSelectorField } from "actions/actionSelectorActions";
 import { waitForWidgetConfigBuild } from "./InitSagas";
-import equal from "fast-deep-equal";
+import { generateOptimisedUpdates } from "./EvaluationsSagaUtils";
 
 const APPSMITH_CONFIGS = getAppsmithConfigs();
-const LARGE_COLLECTION_SIZE = 100;
 export const evalWorker = new GracefulWorkerService(
   new Worker(
     new URL("../workers/Evaluation/evaluation.worker.ts", import.meta.url),
@@ -160,145 +158,16 @@ export function* updateDataTreeHandler(
 
   const oldDataTree: ReturnType<typeof getDataTree> = yield select(getDataTree);
 
-  const generateWithKey = (basePath: any, key: any) => {
-    const segmentedPath = [...basePath, key];
-
-    if (isNumber(key)) {
-      return {
-        path: basePath.join(".") + ".[" + key + "]",
-        segmentedPath,
-      };
-    }
-    if (key.includes(".")) {
-      return {
-        path: basePath.join(".") + ".['" + key + "']",
-        segmentedPath,
-      };
-    }
-    return {
-      path: basePath.join(".") + "." + key,
-      segmentedPath,
-    };
-  };
-
-  const isLargeCollection = (val: any) => {
-    if (!Array.isArray(val)) return false;
-    const rowSize = !isObject(val[0]) ? 1 : Object.keys(val[0]).length;
-
-    const size = val.length * rowSize;
-
-    return size > LARGE_COLLECTION_SIZE;
-  };
-  const ignoreLargeKeys = Object.keys(identicalEvalPathsPatches).reduce(
-    (acc: any, evalPath: string) => {
-      //for object paths which have a "." in the object key like "a.['b.c']", we need to extract these
-      // paths and break them to appropriate patch paths
-      const regex = /(.+)\.\[\'(.*)\'\]/;
-
-      const matches = evalPath.match(regex);
-      if (!matches || !matches.length) {
-        //regular paths like "a.b.c"
-        acc[evalPath] = identicalEvalPathsPatches[evalPath];
-        return acc;
-      }
-
-      const [, firstSeg, nestedPathSeg] = matches;
-      // normalise non nested paths like "a.['b']"
-      if (!nestedPathSeg.includes(".")) {
-        //regular paths like "a.b.c"
-        const key = [firstSeg, nestedPathSeg].join(".");
-        acc[key] = identicalEvalPathsPatches[evalPath];
-        return acc;
-      }
-      // object paths which have a "." like "a.['b.c']"
-      //regular paths like "a.b.c"
-      const key = [firstSeg, `['${nestedPathSeg}']`].join(".");
-      acc[key] = identicalEvalPathsPatches[evalPath];
-      return acc;
-    },
-    {},
+  const updates = generateOptimisedUpdates(
+    oldDataTree,
+    dataTree,
+    identicalEvalPathsPatches,
   );
-  const attachDirectly: any = [];
-  const ignoreLargeKeysHasBeenAttached = new Set();
-  const updates =
-    diff(oldDataTree, dataTree, (path, key) => {
-      if (!path.length || key === "__evaluation__") return false;
-
-      const { path: setPath, segmentedPath } = generateWithKey(path, key);
-
-      // if ignore path is present
-      if (!!ignoreLargeKeys[setPath]) {
-        const originalStateVal = get(oldDataTree, segmentedPath);
-        const correspondingStatePath = ignoreLargeKeys[setPath];
-        const statePathValue = get(dataTree, correspondingStatePath);
-        if (!equal(originalStateVal, statePathValue)) {
-          attachDirectly.push({ path: segmentedPath, rhs: statePathValue });
-        }
-        ignoreLargeKeysHasBeenAttached.add(setPath);
-        return true;
-      }
-      const rhs = get(dataTree, segmentedPath);
-
-      const lhs = get(oldDataTree, segmentedPath);
-
-      const isLhsLarge = isLargeCollection(lhs);
-      const isRhsLarge = isLargeCollection(rhs);
-      if (!isLhsLarge && !isRhsLarge) {
-        return false;
-      }
-
-      if ((!isLhsLarge && isRhsLarge) || (isLhsLarge && !isRhsLarge)) {
-        attachDirectly.push({ path: segmentedPath, rhs });
-        return true;
-      }
-
-      !equal(lhs, rhs) && attachDirectly.push({ path: segmentedPath, rhs });
-
-      return true;
-    }) || [];
-
-  const missingSetPaths = Object.keys(ignoreLargeKeys)
-    .filter((evalPath) => !ignoreLargeKeysHasBeenAttached.has(evalPath))
-    .map((evalPath) => {
-      const statePath = ignoreLargeKeys[evalPath];
-      //for object paths which have a "." in the object key like "a.['b.c']", we need to extract these
-      // paths and break them to appropriate patch paths
-      const regex = /(.+)\.\[\'(.*)\'\]/;
-
-      //get the matching value from the widget properies in the data tree
-      const val = get(dataTree, statePath);
-
-      const matches = evalPath.match(regex);
-      if (!matches || !matches.length) {
-        //regular paths like "a.b.c"
-
-        return {
-          kind: "N",
-          path: evalPath.split("."),
-          rhs: val,
-        };
-      }
-      // object paths which have a "." like "a.['b.c']"
-      const [, firstSeg, nestedPathSeg] = matches;
-      const segmentedPath = [...firstSeg.split("."), nestedPathSeg];
-
-      return {
-        kind: "N",
-        path: segmentedPath,
-        rhs: val,
-      };
-    });
-  const updatesWithEvalUpdates = [
-    ...updates,
-    ...attachDirectly.map((val: any) => ({ kind: "N", ...val })),
-    ...missingSetPaths,
-  ];
-
   if (!isEmpty(staleMetaIds)) {
     yield put(resetWidgetsMetaState(staleMetaIds));
   }
 
-  yield put(setEvaluatedTree(updatesWithEvalUpdates));
+  yield put(setEvaluatedTree(updates));
 
   ConfigTreeActions.setConfigTree(configTree);
 

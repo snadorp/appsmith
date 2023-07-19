@@ -14,11 +14,13 @@ import type {
 } from "../constants";
 
 import log from "loglevel";
+import equal from "fast-deep-equal/es6";
 import { Colors } from "constants/Colors";
 import type { WidgetPositionProps } from "widgets/BaseWidget";
 import { ChartErrorComponent } from "./ChartErrorComponent";
 import EChartsConfigurationBuilder from "./EChartsConfigurationBuilder";
 import ChartsDatasetBuilder from "./EChartsDatasetBuilder";
+import { getThemeDetails } from "selectors/themeSelectors";
 // Leaving this require here. Ref: https://stackoverflow.com/questions/41292559/could-not-find-a-declaration-file-for-module-module-name-path-to-module-nam/42505940#42505940
 // FusionCharts comes with its own typings so there is no need to separately import them. But an import from fusioncharts/core still requires a declaration file.
 const FusionCharts = require("fusioncharts");
@@ -115,10 +117,14 @@ class ChartComponent extends React.Component<
   chartData: ChartData[] = [];
   echartsConfigurationBuilder: EChartsConfigurationBuilder;
 
+  counter = 0;
+  echartOptions : Record<string, any> = {}
+
   constructor(props: ChartComponentProps) {
     super(props);
     this.echartsConfigurationBuilder = new EChartsConfigurationBuilder();
 
+    console.log("***", "setting state to in constructor ", this.props.chartType)
     this.state = {
       chartError: null,
       chartType: this.props.chartType,
@@ -193,26 +199,45 @@ class ChartComponent extends React.Component<
     this.props.onDataPointClick(chartSelectedPoint);
   };
 
+  initializeEchartsInstance = () => {
+    this.chartContainerElement = document.getElementById(
+      this.eChartsContainerId,
+    );
+    if (!this.chartContainerElement) {
+      console.log("***", "didn't find chart container element")
+      return;
+    }
+
+    if (!this.echartsInstance || this.echartsInstance.isDisposed()) {
+      this.echartsInstance = echarts.init(
+        this.chartContainerElement,
+        undefined,
+        {
+          renderer: "svg",
+        },
+      );
+    }
+  }
+
   renderECharts = () =>
     {
-      this.chartContainerElement = document.getElementById(
-        this.eChartsContainerId,
-      );
-      if (!this.chartContainerElement) {
-        return;
+      const newOptions = this.getEChartsOptions()
+      if (equal(newOptions, this.echartOptions)) {
+        console.log("***", "options are same")
+        return
+      } else {
+        console.log("***", "options are not same new options ", newOptions)
+        console.log("***", "old options ", this.echartOptions)
+      }
+
+      this.echartOptions = newOptions;
+      this.initializeEchartsInstance()
+      
+      if (!this.echartsInstance) {
+        return
       }
 
       try {
-        if (!this.echartsInstance || this.echartsInstance.isDisposed()) {
-          this.echartsInstance = echarts.init(
-            this.chartContainerElement,
-            undefined,
-            {
-              renderer: "svg",
-            },
-          );
-        }
-
         this.echartsInstance.off("click");
         this.echartsInstance.on("click", this.dataClickCallback);
         this.echartsInstance.setOption(this.getEChartsOptions(), true);
@@ -227,10 +252,20 @@ class ChartComponent extends React.Component<
             height: this.props.dimensions.componentHeight,
           });
         }
+        // console.log("***", "rendering echarts ")
+        // if (this.counter % 3 == 1) {
+        //   console.log("***", "going to throw error")
+        //   throw "This is a simulated error"
+        //   console.log("***", "just after throwing error")
+        // }
+
+        console.log("***", "coming after throwing if block error")
         if (this.state.chartError) {
+          console.log("***", "resetting chart error to null")
           this.setState({ chartError: null });
         }
       } catch (error) {
+        console.log("***", "caught error in catch block ", error)
         this.disposeECharts();
         this.setState({ chartError: error });
       }
@@ -271,6 +306,7 @@ class ChartComponent extends React.Component<
   }
 
   renderChartingLibrary() {
+    console.log("***", "chose render charting library ", this.state)
     if (this.state.chartType === "CUSTOM_FUSION_CHART") {
       this.disposeECharts();
       this.renderFusionCharts();
@@ -281,15 +317,20 @@ class ChartComponent extends React.Component<
   }
 
   componentDidUpdate() {
+    this.counter = this.counter + 1;
+    console.log("***", "did update is ", this.counter, this.state, this.props.chartType)
+    // console.log("***", "getting chart data current state ", this.state)
     if (
       this.props.chartType == "CUSTOM_FUSION_CHART" &&
       this.state.chartType != "CUSTOM_FUSION_CHART"
     ) {
-      this.setState({ chartType: "CUSTOM_FUSION_CHART" });
+      console.log("***", "setting state to custom fusion chart")
+      this.setState({ chartType: "CUSTOM_FUSION_CHART" })
     } else if (
       this.props.chartType != "CUSTOM_FUSION_CHART" &&
       this.state.chartType === "CUSTOM_FUSION_CHART"
     ) {
+      console.log("***", "setting state to area chart")
       // User has selected one of the ECharts option
       this.setState({ chartType: "AREA_CHART" });
     }
@@ -317,11 +358,12 @@ class ChartComponent extends React.Component<
         {this.state.chartType !== "CUSTOM_FUSION_CHART" && (
           <ChartsContainer id={this.eChartsContainerId} />
         )}
+        
         {this.state.chartType === "CUSTOM_FUSION_CHART" && (
           <ChartsContainer id={this.customFusionChartContainerId} />
         )}
 
-        {this.state.chartError && (
+        {this.state.chartType !== "CUSTOM_FUSION_CHART" && this.state.chartError && (
           <ChartErrorComponent chartError={this.state.chartError} />
         )}
       </CanvasContainer>

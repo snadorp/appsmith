@@ -18,6 +18,7 @@ export default class EChartsConfigurationBuilder {
     return chartData.map((chartDatum, index) => {
       let config: Record<string, unknown> = {};
       let color = chartDatum.color;
+      console.log("***", "props is ", props)
 
       if (index == 0 && !color) {
         color = props.primaryColor;
@@ -40,6 +41,7 @@ export default class EChartsConfigurationBuilder {
           label: { fontFamily: this.fontFamily, color: Colors.DOVE_GRAY2 },
         };
       }
+      console.log("***", "returning config ", config)
       return config;
     });
   }
@@ -175,7 +177,7 @@ export default class EChartsConfigurationBuilder {
       }
     }
 
-    console.log("***", "name gap is ", gap)
+    // console.log("***", "name gap is ", gap)
     return gap
   }
 
@@ -230,7 +232,14 @@ export default class EChartsConfigurationBuilder {
 
     const chartConfig: Record<string, unknown> = this.#defaultEChartConfig(props);
     chartConfig.title = this.#titleConfigForChart(props, chartData);
-    chartConfig.xAxis = this.#xAxisConfig(props);
+    
+    // console.log("***", "chart data is ", chartData)
+
+    if (chartData[0].data[0].y % 2 == 0) {
+      chartConfig.xAxiis = this.#xAxisConfig(props);
+    } else {
+      chartConfig.xAxis = this.#xAxisConfig(props);
+    }
     chartConfig.yAxis = this.#yAxisConfig(props);
 
     chartConfig.dataZoom = this.#scrollConfig(props);

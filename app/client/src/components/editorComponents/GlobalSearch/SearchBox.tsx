@@ -162,4 +162,4 @@ function SearchBox({ category, query, setCategory, setQuery }: SearchBoxProps) {
   );
 }
 
-export default SearchBox;
+export default React.memo(SearchBox);

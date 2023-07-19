@@ -285,7 +285,7 @@ function GlobalSearch() {
   ]);
 
   const activeItem = useMemo(() => {
-    return searchResults[activeItemIndex] || {};
+    return searchResults[activeItemIndex];
   }, [searchResults, activeItemIndex]);
 
   const getNextActiveItem = (nextIndex: number) => {

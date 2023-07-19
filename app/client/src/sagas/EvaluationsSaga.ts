@@ -252,7 +252,6 @@ export function* evaluateTreeSaga(
   const theme: ReturnType<typeof getSelectedAppTheme> = yield select(
     getSelectedAppTheme,
   );
-  const appMode: ReturnType<typeof getAppMode> = yield select(getAppMode);
   const toPrintConfigTree = unEvalAndConfigTree.configTree;
   log.debug({ unevalTree, configTree: toPrintConfigTree });
   PerformanceTracker.startAsyncTracking(
@@ -268,7 +267,6 @@ export function* evaluateTreeSaga(
     allActionValidationConfig,
     forceEvaluation,
     metaWidgets,
-    appMode,
   };
 
   const workerResponse: EvalTreeResponseData = yield call(

@@ -103,11 +103,7 @@ import {
   parseJSActions,
   updateEvalTreeWithJSCollectionState,
 } from "workers/Evaluation/JSObject";
-import {
-  addRootcauseToAsyncInvocationErrors,
-  getFixedTimeDifference,
-  replaceThisDotParams,
-} from "./utils";
+import { getFixedTimeDifference, replaceThisDotParams } from "./utils";
 import { isJSObjectFunction } from "workers/Evaluation/JSObject/utils";
 import {
   getValidatedTree,
@@ -896,7 +892,12 @@ export default class DataTreeEvaluator {
     staleMetaIds: string[];
   } {
     const tree = klona(oldUnevalTree);
-    errorModifier.updateAsyncFunctions(tree, this.getConfigTree());
+    errorModifier.updateAsyncFunctions(
+      tree,
+      this.getConfigTree(),
+      this.dependencyMap,
+    );
+
     const evalMetaUpdates: EvalMetaUpdates = [];
     const { isFirstTree, metaWidgets, skipRevalidation, unevalUpdates } =
       options;
@@ -1231,10 +1232,11 @@ export default class DataTreeEvaluator {
           );
           if (fullPropertyPath && evalErrors.length) {
             addErrorToEntityProperty({
-              errors: addRootcauseToAsyncInvocationErrors(
+              errors: errorModifier.addRootcauseToAsyncInvocationErrors(
                 fullPropertyPath,
                 configTree,
                 evalErrors,
+                this.dependencyMap,
               ),
               evalProps: this.evalProps,
               fullPropertyPath,

@@ -140,7 +140,7 @@ const getSortedResults = (
 };
 
 const filterCategoryList = getFilterCategoryList();
-
+const emptyObj = {};
 function GlobalSearch() {
   const currentPageId = useSelector(getCurrentPageId) as string;
   const modalOpen = useSelector(isModalOpenSelector);
@@ -285,7 +285,7 @@ function GlobalSearch() {
   ]);
 
   const activeItem = useMemo(() => {
-    return searchResults[activeItemIndex];
+    return searchResults[activeItemIndex] || emptyObj;
   }, [searchResults, activeItemIndex]);
 
   const getNextActiveItem = (nextIndex: number) => {

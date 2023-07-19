@@ -116,7 +116,7 @@ function SearchBox({ category, query, setCategory, setQuery }: SearchBoxProps) {
       setQuery(query);
       (document.querySelector("#global-search") as HTMLInputElement)?.focus();
     },
-    [listenToChange],
+    [listenToChange, setQuery],
   );
 
   return (

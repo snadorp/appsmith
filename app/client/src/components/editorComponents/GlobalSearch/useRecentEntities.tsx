@@ -75,7 +75,7 @@ const useResentEntities = (): Array<
           }
         })
         .filter(Boolean),
-    [widgetsMap, recentEntities, actions, jsActions, reducerDatasources],
+    [recentEntities, actions, jsActions, pages, reducerDatasources, widgetsMap],
   );
 
   return result;

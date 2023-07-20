@@ -22,8 +22,8 @@ export const ChartErrorContainer = styled.div`
  */
 export function ChartErrorComponent(props: any) {
   const errorMessage = () => {
-    const title = "Error in chart data/configuration";
-    let subheading = "Message : ";
+    const title = "Error in Chart Data/Configuration";
+    let subheading = "";
     let body = "";
 
     const chartError = props.chartError;
@@ -43,19 +43,22 @@ export function ChartErrorComponent(props: any) {
 
   return (
     <ChartErrorContainer>
-      <h1 style={{ height: "20%", fontSize: "xx-large", fontWeight: 800 }}>
-        {errorMessage().title}
-      </h1>
-      <p style={{ height: "20%", fontSize: "x-large", fontWeight: 800 }}>
-        {errorMessage().subheading}
-      </p>
-      <div style={{ height: "60%" }}>
-        <p style={{ fontSize: "large", fontWeight: 800 }}>Stack :</p>
-        <br />
-        <p style={{ overflowY: "scroll", fontSize: "medium", height: "70%" }}>
-          {errorMessage().body}
+      <div>
+        <h1 style={{ height: "20%", fontSize: "xx-large", fontWeight: 800 }}>
+          {errorMessage().title}
+        </h1>
+        <p style={{ height: "20%", fontSize: "x-large", fontWeight: 800 }}>
+          {errorMessage().subheading}
         </p>
+        <div style={{ height: "60%" }}>
+          <p style={{ fontSize: "large", fontWeight: 800 }}>Stack :</p>
+          <br />
+          <p style={{ overflowY: "scroll", fontSize: "medium", height: "70%" }}>
+            {errorMessage().body}
+          </p>
+        </div>
       </div>
+      
     </ChartErrorContainer>
   );
 }

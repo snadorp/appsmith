@@ -81,12 +81,14 @@ class ChartWidget extends BaseWidget<ChartWidgetProps, WidgetState> {
     );
   };
 
-  // componentDidUpdate(
-  //   prevProps: ChartWidgetProps,
-  //   prevState?: WidgetState | undefined,
-  // ): void {
-  //   super.componentDidUpdate(prevProps, prevState);
-  // }
+  componentDidUpdate(
+    prevProps: ChartWidgetProps,
+    prevState?: WidgetState | undefined,
+  ): void {
+    console.log("***", "component did update before ", this.props.chartType, prevProps.chartType)
+    super.componentDidUpdate(prevProps, prevState);
+    console.log("***", "component did update ", this.props.chartType, prevProps.chartType)
+  }
 
   getPageView() {
     console.log("***", "receiving chart type prop in widget index file ", this.props.chartType)

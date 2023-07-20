@@ -8,9 +8,9 @@ import React from "react";
 import {render } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import userEvent from '@testing-library/user-event'
+import PropertySection from "pages/Editor/PropertyPane/PropertySection";
 
 let container: any;
-let clickCounter = 0;
 
 describe("Chart Widget", () => {
   const seriesData1: ChartData = {
@@ -37,12 +37,7 @@ describe("Chart Widget", () => {
     isLoading: false,
     setAdaptiveYMin: false,
     labelOrientation: LabelOrientation.AUTO,
-    onDataPointClick: (point) => {
-      clickCounter = 1
-      const element = document.documentElement
-      console.log("element in on click is ", element)
-      // element?.remove()
-    },
+    onDataPointClick: (point) => {},
     widgetId: "widgetID",
     xAxisName: "xaxisname",
     yAxisName: "yaxisname",
@@ -70,9 +65,7 @@ describe("Chart Widget", () => {
   });
 
   it("renders the correct library for chart type", async () => {
-    const { container, getByText, rerender, debug } = render(<ChartComponent {...defaultProps} />)
-
-    debug()
+    const { container, getByText, rerender } = render(<ChartComponent {...defaultProps} />)
 
     const xAxisLabel = getByText("xaxisname")
     expect(xAxisLabel).toBeInTheDocument()
@@ -83,9 +76,10 @@ describe("Chart Widget", () => {
     let fusionContainer = container.querySelector("#widgetIDcustom-fusion-chart-container")
     expect(fusionContainer).not.toBeInTheDocument()
 
-    defaultProps.chartType = "CUSTOM_FUSION_CHART"
+    const props = {...defaultProps}
+    props.chartType = "CUSTOM_FUSION_CHART"
     
-    rerender(<ChartComponent {...defaultProps}></ChartComponent>)
+    rerender(<ChartComponent {...props}></ChartComponent>)
 
     echartsContainer = container.querySelector("#widgetIDechart-container")
     expect(echartsContainer).not.toBeInTheDocument()
@@ -95,15 +89,18 @@ describe("Chart Widget", () => {
   });
 
   it("adds a click event when user adds a click callback", async () => {
-    const { container, debug, baseElement, getByText, rerender } = render(<ChartComponent {...defaultProps} />)    
-
-    let datapoint = container.querySelector("path[d^='M95 0L95 60Z']")
-    expect(clickCounter).toEqual(0)
-    
-    if (datapoint) {
-      console.log("clicking on data point")
-      await userEvent.click(datapoint)
+    const mockCallback = jest.fn()
+    const props = {...defaultProps}
+    props.onDataPointClick = (point) => {
+      mockCallback()
     }
-    expect(clickCounter).toEqual(1)
+
+    const { container } = render(<ChartComponent {...props} />)    
+    
+    let datapoint = container.querySelector("path[d^='M95 0L95 60Z']") || new Element()
+    
+    expect(mockCallback.mock.calls.length).toEqual(0)
+    userEvent.click(datapoint)
+    expect(mockCallback.mock.calls.length).toEqual(1)
   })
 });

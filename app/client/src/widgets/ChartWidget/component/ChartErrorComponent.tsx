@@ -1,6 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import styled from "styled-components";
 import { Colors } from "constants/Colors";
+import { Collapse } from "@blueprintjs/core";
+import { Button, Text } from "design-system";
+import CollapseToggle from "pages/Editor/Explorer/Entity/CollapseToggle";
 
 export const ChartErrorContainer = styled.div`
   height: 100%;
@@ -14,26 +17,35 @@ export const ChartErrorContainer = styled.div`
   left: 0px;
 }`;
 
+export const CenteredDiv = styled.div`
+  height: 60%;
+  width: 80%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  -webkit-transform: translate(-50%, -50%);
+}`;
+
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * THIS IS A WIP. THE UX DESIGN FOR THIS COMPONENT HASN'T COME YET. PLEASE IGNORE THIS COMPONENT FROM REVIEW
  * @param props
  * @returns
  */
-export function ChartErrorComponent(props: any) {
+
+export interface ChartErrorProps {
+  error: Error
+}
+export function ChartErrorComponent(props: ChartErrorProps) {
+  const [bodyCollapsed, setBodyCollapsed] = useState(true)
+
   const errorMessage = () => {
     const title = "Error in Chart Data/Configuration";
-    let subheading = "";
-    let body = "";
+    let subheading = props.error.message;;
+    let body = (props.error.stack ?? "" + props.error.stack + props.error.stack) ;
+    body = body + "this is a long text this is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long textthis is a long text"
 
-    const chartError = props.chartError;
-    const typeoferror = typeof chartError as string;
-    if (typeoferror == "error" || typeoferror == "object") {
-      subheading += chartError.message;
-      body += chartError.stack ?? "";
-    } else {
-      subheading += chartError;
-    }
     return {
       title: title,
       subheading: subheading,
@@ -41,23 +53,31 @@ export function ChartErrorComponent(props: any) {
     };
   };
 
+  function toggleBody() {
+    setBodyCollapsed(!bodyCollapsed)
+  }
+
   return (
     <ChartErrorContainer>
-      <div>
-        <h1 style={{ height: "20%", fontSize: "xx-large", fontWeight: 800 }}>
+      <CenteredDiv>
+        <h1 style={{ fontSize: "14px", fontWeight: 400, lineHeight: "20px", textAlign: "center" }}>
           {errorMessage().title}
         </h1>
-        <p style={{ height: "20%", fontSize: "x-large", fontWeight: 800 }}>
+        <p style={{ fontSize: "14px", fontWeight: 500, lineHeight: "20px", textAlign: "center" }}>
           {errorMessage().subheading}
         </p>
-        <div style={{ height: "60%" }}>
-          <p style={{ fontSize: "large", fontWeight: 800 }}>Stack :</p>
-          <br />
-          <p style={{ overflowY: "scroll", fontSize: "medium", height: "70%" }}>
-            {errorMessage().body}
-          </p>
+
+        <div style={{ height: "60%", display: "flex", flexFlow: "column", marginTop: "10px" }}>
+          <button style={{ fontSize: "14px", fontWeight: 500 }} onClick={toggleBody}> More Details</button>
+          <div style={{ height: "60%", overflowY: "scroll", marginTop: "10px" }}>
+              <Collapse isOpen={!bodyCollapsed}>
+                  <p style={{ fontSize: "14px", fontWeight: "400", lineHeight: "20px", height: "70%" }}>
+                    {errorMessage().body}
+                  </p>
+              </Collapse>
+          </div>
         </div>
-      </div>
+      </CenteredDiv>
       
     </ChartErrorContainer>
   );

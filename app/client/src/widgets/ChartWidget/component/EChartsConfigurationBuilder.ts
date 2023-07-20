@@ -238,7 +238,7 @@ export default class EChartsConfigurationBuilder {
     if (chartData[0].data[0].y % 2 == 0) {
       chartConfig.xAxiis = this.#xAxisConfig(props);
     } else {
-      chartConfig.xAxis = this.#xAxisConfig(props);
+      chartConfig.xAxiis = this.#xAxisConfig(props);
     }
     chartConfig.yAxis = this.#yAxisConfig(props);
 

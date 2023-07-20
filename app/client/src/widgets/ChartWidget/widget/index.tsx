@@ -19,14 +19,13 @@ import { Colors } from "constants/Colors";
 import type { Stylesheet } from "entities/AppTheming";
 import { DefaultAutocompleteDefinitions } from "widgets/WidgetUtils";
 import type { AutocompletionDefinitions } from "widgets/constants";
+import { ChartErrorComponent } from "../component/ChartErrorComponent";
 
 const ChartComponent = lazy(() =>
   retryPromise(() => import(/* webpackChunkName: "charts" */ "../component")),
 );
 
 class ChartWidget extends BaseWidget<ChartWidgetProps, WidgetState> {
-  currentHeight = 0;
-  currentWidth = 0;
 
   static getAutocompleteDefinitions(): AutocompletionDefinitions {
     return {
@@ -90,37 +89,56 @@ class ChartWidget extends BaseWidget<ChartWidgetProps, WidgetState> {
     console.log("***", "component did update ", this.props.chartType, prevProps.chartType)
   }
 
+  shouldShowChartComponent() {
+    return (!this.props.errors || this.props.errors.length == 0)
+  }
+
+  error() {
+    if (this.props.errors && this.props.errors.length > 0) {
+      return this.props.errors[0]
+    } else {
+      const chartError = new Error("rajat message")
+      chartError.name = "name"
+      
+      return chartError
+    }
+  }
+  
+
   getPageView() {
-    console.log("***", "receiving chart type prop in widget index file ", this.props.chartType)
+    console.log("***", "receiving chart type prop in widget index file ", this.props.chartType, this.props.errors)
     return (
-      <Suspense fallback={<Skeleton />}>
-        <ChartComponent
-          allowScroll={this.props.allowScroll}
-          borderRadius={this.props.borderRadius}
-          bottomRow={this.props.bottomRow}
-          boxShadow={this.props.boxShadow}
-          chartData={this.props.chartData}
-          chartName={this.props.chartName}
-          chartType={this.props.chartType}
-          customFusionChartConfig={this.props.customFusionChartConfig}
-          dimensions={this.getComponentDimensions()}
-          fontFamily={this.props.fontFamily ?? "Nunito Sans"}
-          hasOnDataPointClick={Boolean(this.props.onDataPointClick)}
-          isLoading={this.props.isLoading}
-          isVisible={this.props.isVisible}
-          key={this.props.widgetId}
-          labelOrientation={this.props.labelOrientation}
-          leftColumn={this.props.leftColumn}
-          onDataPointClick={this.onDataPointClick}
-          primaryColor={this.props.accentColor ?? Colors.ROYAL_BLUE_2}
-          rightColumn={this.props.rightColumn}
-          setAdaptiveYMin={this.props.setAdaptiveYMin}
-          topRow={this.props.topRow}
-          widgetId={this.props.widgetId}
-          xAxisName={this.props.xAxisName}
-          yAxisName={this.props.yAxisName}
-        />
-      </Suspense>
+      <div>
+        {this.shouldShowChartComponent() && <ChartErrorComponent error={this.error()}></ChartErrorComponent>}
+        {!this.shouldShowChartComponent() && <Suspense fallback={<Skeleton />}>
+          <ChartComponent
+            allowScroll={this.props.allowScroll}
+            borderRadius={this.props.borderRadius}
+            bottomRow={this.props.bottomRow}
+            boxShadow={this.props.boxShadow}
+            chartData={this.props.chartData}
+            chartName={this.props.chartName}
+            chartType={this.props.chartType}
+            customFusionChartConfig={this.props.customFusionChartConfig}
+            dimensions={this.getComponentDimensions()}
+            fontFamily={this.props.fontFamily ?? "Nunito Sans"}
+            hasOnDataPointClick={Boolean(this.props.onDataPointClick)}
+            isLoading={this.props.isLoading}
+            isVisible={this.props.isVisible}
+            key={this.props.widgetId}
+            labelOrientation={this.props.labelOrientation}
+            leftColumn={this.props.leftColumn}
+            onDataPointClick={this.onDataPointClick}
+            primaryColor={this.props.accentColor ?? Colors.ROYAL_BLUE_2}
+            rightColumn={this.props.rightColumn}
+            setAdaptiveYMin={this.props.setAdaptiveYMin}
+            topRow={this.props.topRow}
+            widgetId={this.props.widgetId}
+            xAxisName={this.props.xAxisName}
+            yAxisName={this.props.yAxisName}
+          />
+        </Suspense>}
+      </div>
     );
   }
 

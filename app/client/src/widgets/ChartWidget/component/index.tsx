@@ -53,7 +53,7 @@ FusionCharts.options.license({
 });
 
 export interface ChartComponentState {
-  eChartsError: unknown;
+  eChartsError: Error | undefined;
   chartType: ChartType;
 }
 export interface ChartComponentProps extends WidgetPositionProps {
@@ -125,7 +125,7 @@ class ChartComponent extends React.Component<
 
     console.log("***", "setting state to in constructor ", this.props.chartType)
     this.state = {
-      eChartsError: null,
+      eChartsError: undefined,
       chartType: this.props.chartType,
     };
   }
@@ -222,16 +222,15 @@ class ChartComponent extends React.Component<
           this.echartsInstance.setOption(this.echartConfiguration, true);
           if (this.state.eChartsError) {
             console.log("***", "resetting chart error to null")
-            this.setState({ eChartsError: null });
+            this.setState({ eChartsError: undefined });
           }
         }
         
         this.resizeEchartsIfNeeded()
         console.log("***", "coming after throwing if block error")     
       } catch (error) {
-        console.log("***", "caught error in catch block ", error)
         this.disposeECharts();
-        this.setState({ eChartsError: error });
+        this.setState({ eChartsError: error as Error });
       }
     };
 
@@ -269,7 +268,7 @@ class ChartComponent extends React.Component<
       this.state.chartType != "CUSTOM_FUSION_CHART"
     ) {
       console.log("***", "setting state to custom fusion chart")
-      this.setState({ eChartsError: null, chartType: "CUSTOM_FUSION_CHART" })
+      this.setState({ eChartsError: undefined, chartType: "CUSTOM_FUSION_CHART" })
     } else if (
       this.props.chartType != "CUSTOM_FUSION_CHART" &&
       this.state.chartType === "CUSTOM_FUSION_CHART"
@@ -377,8 +376,8 @@ class ChartComponent extends React.Component<
           <ChartsContainer id={this.customFusionChartContainerId} />
         )}
 
-        {this.state.eChartsError && (
-          <ChartErrorComponent chartError={this.state.eChartsError} />
+        {(this.state.eChartsError &&
+          <ChartErrorComponent error={this.state.eChartsError} />
         )}
       </CanvasContainer>
     );
